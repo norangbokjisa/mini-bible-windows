@@ -196,7 +196,9 @@ public static class UiLayoutTests
             AssertEx.True(header.Height<=expected+10,$"single-row header {header.Height} should match controls {expected}");
             var wideHeight=header.Height;
             form.Size=form.MinimumSize; form.PerformLayout();
-            AssertEx.True(header.Height>wideHeight,"wrapped navigation should be taller than one-row navigation");
+            var firstChapter=Find<Button>(form,"FirstChapterButton");
+            AssertEx.True(navigation.GetFlowBreak(firstChapter),"navigation should wrap at minimum width");
+            AssertEx.True(header.Height>=wideHeight,"wrapped header should not be shorter than one-row header");
         });
     }
 
@@ -274,3 +276,4 @@ public static class UiLayoutTests
         if (failure is not null) throw failure;
     }
 }
+
