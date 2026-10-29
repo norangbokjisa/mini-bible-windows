@@ -1,0 +1,20 @@
+# Build and packaging output
+**/bin/
+**/obj/
+work/
+outputs/
+*.user
+
+# User-provided Bible data and local settings
+bible.json
+settings.json
+BibleData/
+
+# IDE and operating-system files
+.vs/
+.vscode/
+.idea/
+.superpowers/
+.DS_Store
+Thumbs.db
+
