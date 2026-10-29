@@ -1,0 +1,72 @@
+name: Publish V2.9 Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-v2.9.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Run tests
+        shell: pwsh
+        run: dotnet run --project tests/MiniBible.Tests/MiniBible.Tests.csproj
+
+      - name: Build Windows package
+        shell: pwsh
+        run: ./scripts/package.ps1
+
+      - name: Verify Windows package
+        shell: pwsh
+        run: ./tests/package-smoke.ps1
+
+      - name: Update release metadata
+        shell: pwsh
+        run: |
+          $zip = "outputs/mini_bible_windows_v2.9.zip"
+          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash
+          $metadata = [ordered]@{
+            version = "2.9.0"
+            tag = "v2.9.0"
+            url = "https://github.com/norangbokjisa/mini-bible-windows/releases/download/v2.9.0/mini_bible_windows_v2.9.zip"
+            sha256 = $hash
+          }
+          $metadata | ConvertTo-Json | Set-Content -LiteralPath latest.json -Encoding utf8
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latest.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Update V2.9 release checksum"
+            git push
+          }
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v2.9.0 "outputs/mini_bible_windows_v2.9.zip" --title "미니 성경 V2.9" --notes @"
+          Windows용 초소형 성경 뷰어 V2.9입니다.
+
+          - 선택한 성경 권의 첫 장으로 이동하는 버튼
+          - 좌우형 장·절 이동 조절
+          - 라이트·다크 테마와 글꼴 설정
+          - JSON/CSV 성경 파일 연결
+          - .NET 미설치 PC에서도 실행 가능한 전용 런타임 포함
+
+          저작권 보호 성경 본문은 포함되어 있지 않습니다.
+          "@
