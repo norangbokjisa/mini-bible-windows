@@ -118,6 +118,68 @@ public static class UiLayoutTests
         });
     }
 
+    public static void Test_VerseParagraphsUseHalfLineSpacingWithoutBlankLines()
+    {
+        RunSta(() =>
+        {
+            using var form = new MainForm();
+            var data = new BibleData([
+                new Verse("가상권",1,1,"첫 본문"),
+                new Verse("가상권",1,2,"둘째 본문")]);
+            typeof(MainForm).GetMethod("SetData", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [data]);
+            var body = Find<RichTextBox>(form, "BibleText");
+            var firstEnd=body.Text.IndexOf("1. 첫 본문",StringComparison.Ordinal)+"1. 첫 본문".Length;
+            var secondStart=body.Text.IndexOf("2. 둘째 본문",StringComparison.Ordinal);
+            AssertEx.Equal("\n",body.Text[firstEnd..secondStart]);
+            AssertEx.True(body.Rtf?.Contains(@"\sa120")==true,
+                "default 12pt verse paragraphs should use 120 twips of space after");
+        });
+    }
+
+    public static void Test_VerseParagraphSpacingScalesWithFontSize()
+    {
+        RunSta(() =>
+        {
+            using var form = new MainForm();
+            var settings=(AppSettings)typeof(MainForm).GetField("settings",BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(form)!;
+            settings.FontSize=18f;
+            typeof(MainForm).GetMethod("ApplySettings",BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(form,null);
+            var data = new BibleData([
+                new Verse("가상권",1,1,"첫 본문"),
+                new Verse("가상권",1,2,"둘째 본문")]);
+            typeof(MainForm).GetMethod("SetData", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [data]);
+            var body = Find<RichTextBox>(form, "BibleText");
+            AssertEx.True(body.Rtf?.Contains(@"\sa180")==true,
+                "18pt verse paragraphs should use 180 twips of space after");
+        });
+    }
+
+    public static void Test_ParagraphSpacingSkipsChapterBoundaryAndLastVerse()
+    {
+        RunSta(() =>
+        {
+            using var form = new MainForm();
+            var data = new BibleData([
+                new Verse("창세기",1,31,"첫 본문"),
+                new Verse("창세기",2,1,"둘째 본문"),
+                new Verse("창세기",2,2,"셋째 본문")]);
+            typeof(MainForm).GetMethod("SetData", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [data]);
+            var body = Find<RichTextBox>(form, "BibleText");
+            string ParagraphRtf(string paragraph)
+            {
+                var start=body.Text.IndexOf(paragraph,StringComparison.Ordinal);
+                body.Select(start,paragraph.Length);
+                return body.SelectedRtf;
+            }
+            AssertEx.True(!ParagraphRtf("31. 첫 본문").Contains(@"\sa120"),
+                "verse before a new chapter should keep the chapter-boundary spacing only");
+            AssertEx.True(ParagraphRtf("1. 둘째 본문").Contains(@"\sa120"),
+                "a verse followed by the same chapter should use half-line spacing");
+            AssertEx.True(!ParagraphRtf("2. 셋째 본문").Contains(@"\sa120"),
+                "the last visible verse should not add trailing paragraph spacing");
+        });
+    }
+
     public static void Test_SettingsButtonsAreTallEnoughForTheirText()
     {
         RunSta(() =>
