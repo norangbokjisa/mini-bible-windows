@@ -1,9 +1,45 @@
 using MiniBible.Core;
+using System.Runtime.InteropServices;
 
 namespace MiniBible.App;
 
 public sealed class MainForm : Form
 {
+    private const int EmSetParaFormat = 0x447;
+    private const uint PfmSpaceAfter = 0x00000080;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ParaFormat2
+    {
+        public uint Size;
+        public uint Mask;
+        public short Numbering;
+        public short Reserved;
+        public int StartIndent;
+        public int RightIndent;
+        public int Offset;
+        public short Alignment;
+        public short TabCount;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst=32)] public int[] Tabs;
+        public int SpaceBefore;
+        public int SpaceAfter;
+        public int LineSpacing;
+        public short Style;
+        public byte LineSpacingRule;
+        public byte OutlineLevel;
+        public short ShadingWeight;
+        public short ShadingStyle;
+        public short NumberingStart;
+        public short NumberingStyle;
+        public short NumberingTab;
+        public short BorderSpace;
+        public short BorderWidth;
+        public short Borders;
+    }
+
+    [DllImport("user32.dll", CharSet=CharSet.Auto)]
+    private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr parameter, ref ParaFormat2 format);
+
     private static readonly HashSet<string> OldTestamentBooks = new([
         "창세기","출애굽기","레위기","민수기","신명기","여호수아","사사기","룻기","사무엘상","사무엘하",
         "열왕기상","열왕기하","역대상","역대하","에스라","느헤미야","에스더","욥기","시편","잠언",
@@ -26,7 +62,7 @@ public sealed class MainForm : Form
     {
         AutoScaleMode=AutoScaleMode.Dpi;
         settings=store.Load(AppPaths.SettingsJson);
-        Text="미니 성경 V2.9"; ClientSize=new(settings.WindowWidth,settings.WindowHeight); MinimumSize=new(760,260);
+        Text="미니 성경 V2.10"; ClientSize=new(settings.WindowWidth,settings.WindowHeight); MinimumSize=new(760,260);
         StartPosition=FormStartPosition.CenterScreen; TopMost=settings.TopMost;
         if (settings.WindowX >= 0 && Screen.AllScreens.Any(s => s.WorkingArea.Contains(settings.WindowX,settings.WindowY)))
         { StartPosition=FormStartPosition.Manual; Location=new(settings.WindowX,settings.WindowY); }
@@ -158,16 +194,36 @@ public sealed class MainForm : Form
             for (var i=0;i<items.Count;i++)
             {
                 var item=items[i];
-                if (i>0) text.AppendText(Environment.NewLine+Environment.NewLine);
                 var beginsChapter=item.Number==1 || (i>0 && (items[i-1].Book!=item.Book || items[i-1].Chapter!=item.Chapter));
                 if (beginsChapter)
                 {
+                    if (i>0) text.AppendText(Environment.NewLine+Environment.NewLine);
                     text.SelectionFont=boldFont; text.AppendText($"{item.Book} {item.Chapter}장");
                     text.AppendText(Environment.NewLine+Environment.NewLine);
                 }
-                text.SelectionFont=text.Font; text.AppendText($"{item.NumberLabel}. {item.Text}");
+                else if (i>0) text.AppendText(Environment.NewLine);
+                text.SelectionFont=text.Font;
+                var verseStart=text.TextLength;
+                text.AppendText($"{item.NumberLabel}. {item.Text}");
+                var nextContinuesChapter=i+1<items.Count && items[i+1].Book==item.Book && items[i+1].Chapter==item.Chapter && items[i+1].Number!=1;
+                var spaceAfter=nextContinuesChapter?(int)Math.Round(text.Font.SizeInPoints*10f):0;
+                SetParagraphSpaceAfter(verseStart,text.TextLength-verseStart,spaceAfter);
             }
         range.Text=items.Count==0?"":$"{current.Book} {items[0].Chapter}:{items[0].NumberLabel}-{items[^1].Chapter}:{items[^1].NumberLabel}";
+    }
+
+    private void SetParagraphSpaceAfter(int start, int length, int twips)
+    {
+        text.Select(start,length);
+        var format=new ParaFormat2
+        {
+            Size=(uint)Marshal.SizeOf<ParaFormat2>(),
+            Mask=PfmSpaceAfter,
+            Tabs=new int[32],
+            SpaceAfter=Math.Max(0,twips)
+        };
+        SendMessage(text.Handle,EmSetParaFormat,IntPtr.Zero,ref format);
+        text.Select(text.TextLength,0);
     }
 
     private void OpenSettings()
@@ -193,3 +249,4 @@ public sealed class MainForm : Form
         try { store.Save(AppPaths.SettingsJson,settings); } catch { }
     }
 }
+
