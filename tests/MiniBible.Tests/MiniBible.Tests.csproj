@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MiniBible.Core\MiniBible.Core.csproj" />
+    <Compile Include="..\..\src\MiniBible.App\AppPaths.cs" Link="App\AppPaths.cs" />
+    <Compile Include="..\..\src\MiniBible.App\ImportService.cs" Link="App\ImportService.cs" />
+    <Compile Include="..\..\src\MiniBible.App\HorizontalNumberSelector.cs" Link="App\HorizontalNumberSelector.cs" />
+    <Compile Include="..\..\src\MiniBible.App\MainForm.cs" Link="App\MainForm.cs" />
+    <Compile Include="..\..\src\MiniBible.App\SettingsForm.cs" Link="App\SettingsForm.cs" />
+    <Compile Include="..\..\src\MiniBible.App\ThemePalette.cs" Link="App\ThemePalette.cs" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
