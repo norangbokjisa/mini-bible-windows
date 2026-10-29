@@ -1,5 +1,5 @@
 name: Publish V2.9 Release
-# Retry after making the UI layout assertion DPI-independent.
+# Retry with the configured .NET runtime root.
 
 on:
   push:
