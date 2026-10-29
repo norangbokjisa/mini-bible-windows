@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-$zip = Join-Path $root 'outputs\mini_bible_windows_v2.9.zip'
+$zip = Join-Path $root 'outputs\mini_bible_windows_v2.10.zip'
 if (-not (Test-Path -LiteralPath $zip)) { throw 'ZIP 파일이 없습니다.' }
 $extract = Join-Path $root 'work\package-smoke'
 if (Test-Path -LiteralPath $extract) { Remove-Item -LiteralPath $extract -Recurse -Force }
