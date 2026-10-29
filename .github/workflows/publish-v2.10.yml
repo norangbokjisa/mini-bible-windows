@@ -1,0 +1,72 @@
+name: Publish V2.10 Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-v2.10.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Run tests
+        shell: pwsh
+        run: dotnet run --project tests/MiniBible.Tests/MiniBible.Tests.csproj
+
+      - name: Build self-contained Windows package
+        shell: pwsh
+        run: ./scripts/package.ps1
+
+      - name: Verify Windows package
+        shell: pwsh
+        run: ./tests/package-smoke.ps1
+
+      - name: Update release metadata
+        shell: pwsh
+        run: |
+          $zip = "outputs/mini_bible_windows_v2.10.zip"
+          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash
+          $metadata = [ordered]@{
+            version = "2.10.0"
+            tag = "v2.10.0"
+            downloadUrl = "https://github.com/norangbokjisa/mini-bible-windows/releases/download/v2.10.0/mini_bible_windows_v2.10.zip"
+            sha256 = $hash
+          }
+          $metadata | ConvertTo-Json | Set-Content -LiteralPath latest.json -Encoding utf8
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latest.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Update V2.10 release checksum"
+            git push
+          }
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v2.10.0 "outputs/mini_bible_windows_v2.10.zip" --title "미니 성경 V2.10" --notes @"
+          Windows용 초소형 성경 뷰어 V2.10입니다.
+
+          - 절 사이의 한 줄 빈 공간을 약 반 줄의 문단 간격으로 축소
+          - 글꼴 크기에 따라 절 간격도 자연스럽게 비례
+          - 새 장의 굵은 장 제목 구분 간격 유지
+          - 마지막 절 뒤 불필요한 여백 제거
+          - .NET 미설치 PC에서도 실행 가능한 독립 실행형 패키지
+
+          저작권 보호 성경 본문은 포함되어 있지 않습니다.
+          "@
