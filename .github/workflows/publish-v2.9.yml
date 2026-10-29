@@ -1,5 +1,5 @@
 name: Publish V2.9 Release
-# Retry with matching core and desktop runtimes.
+# Build a self-contained Windows package.
 
 on:
   push:
@@ -21,13 +21,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.x"
-
-      - name: Install matching Windows Desktop Runtime
-        shell: pwsh
-        run: |
-          Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
-          ./dotnet-install.ps1 -Runtime dotnet -Channel 9.0 -InstallDir "$env:ProgramFiles\dotnet" -NoPath
-          ./dotnet-install.ps1 -Runtime windowsdesktop -Channel 9.0 -InstallDir "$env:ProgramFiles\dotnet" -NoPath
 
       - name: Run tests
         shell: pwsh
