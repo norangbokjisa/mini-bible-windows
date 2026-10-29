@@ -27,7 +27,11 @@ if ($launchers.Count -ne 1) { throw "실행 스크립트 수가 올바르지 않
 $launcher = $launchers[0]
 Copy-Item -LiteralPath $launcher.FullName -Destination $stage
 
-$dotnetRoot = Split-Path (Get-Command dotnet).Source
+$dotnetRoot = if ($env:DOTNET_ROOT -and (Test-Path -LiteralPath $env:DOTNET_ROOT)) {
+    $env:DOTNET_ROOT
+} else {
+    Split-Path (Get-Command dotnet).Source
+}
 $coreVersion = (Get-ChildItem (Join-Path $dotnetRoot 'shared\Microsoft.NETCore.App') -Directory | Sort-Object {[version]$_.Name} -Descending | Select-Object -First 1).Name
 $desktopVersion = (Get-ChildItem (Join-Path $dotnetRoot 'shared\Microsoft.WindowsDesktop.App') -Directory | Where-Object Name -eq $coreVersion | Select-Object -First 1).Name
 if (-not $desktopVersion) { throw "일치하는 Windows Desktop Runtime $coreVersion을 찾을 수 없습니다." }
@@ -39,3 +43,4 @@ Copy-Item -LiteralPath (Join-Path $dotnetRoot "shared\Microsoft.NETCore.App\$cor
 Copy-Item -LiteralPath (Join-Path $dotnetRoot "shared\Microsoft.WindowsDesktop.App\$desktopVersion") -Destination (Join-Path $portable 'shared\Microsoft.WindowsDesktop.App') -Recurse
 Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $output -CompressionLevel Optimal
 Write-Output $output
+
