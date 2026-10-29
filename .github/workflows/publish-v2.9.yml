@@ -1,5 +1,5 @@
 name: Publish V2.9 Release
-# Retry with the configured .NET runtime root.
+# Retry with matching core and desktop runtimes.
 
 on:
   push:
@@ -26,6 +26,7 @@ jobs:
         shell: pwsh
         run: |
           Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
+          ./dotnet-install.ps1 -Runtime dotnet -Channel 9.0 -InstallDir "$env:ProgramFiles\dotnet" -NoPath
           ./dotnet-install.ps1 -Runtime windowsdesktop -Channel 9.0 -InstallDir "$env:ProgramFiles\dotnet" -NoPath
 
       - name: Run tests
